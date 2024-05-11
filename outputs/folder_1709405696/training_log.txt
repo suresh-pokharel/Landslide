@@ -1,0 +1,20 @@
+2024-03-02 13:55:20 [INFO]: Dataset: LANDSLIDE4SENSE
+2024-03-02 13:55:54 [INFO]: X_train shape:(3799, 128, 128, 14)
+2024-03-02 13:55:54 [INFO]: y_train shape:(3799, 128, 128, 1)
+2024-03-02 13:55:54 [INFO]: X_val shape:(245, 128, 128, 14)
+2024-03-02 13:55:54 [INFO]: y_val shape:(245, 128, 128, 1)
+2024-03-02 13:55:54 [INFO]: X_test shape:(800, 128, 128, 14)
+2024-03-02 13:55:54 [INFO]: y_test shape:(800, 128, 128, 1)
+2024-03-02 13:55:55 [INFO]: Model: att_unet_2d
+2024-03-02 14:12:52 [INFO]: Dataset: KERELA
+2024-03-02 14:14:33 [INFO]: Dataset: KERELA
+2024-03-02 14:16:20 [INFO]: Dataset: ITALY
+2024-03-02 14:18:28 [INFO]: Dataset: ITALY
+2024-03-02 14:18:29 [INFO]: X_train shape:(128, 128, 128, 14)
+2024-03-02 14:18:29 [INFO]: y_train shape:(128, 128, 128, 1)
+2024-03-02 14:18:29 [INFO]: X_val shape:(16, 128, 128, 14)
+2024-03-02 14:18:29 [INFO]: y_val shape:(16, 128, 128, 1)
+2024-03-02 14:18:29 [INFO]: X_test shape:(16, 128, 128, 14)
+2024-03-02 14:18:29 [INFO]: y_test shape:(16, 128, 128, 1)
+2024-03-02 14:22:30 [INFO]: Model: att_unet_2d
+2024-03-02 14:23:59 [INFO]: Model: att_unet_2d
