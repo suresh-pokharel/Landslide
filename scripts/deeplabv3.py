@@ -29,6 +29,8 @@ import config
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
 DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+NUM_EPOCHS = config.NUM_EPOCHS
+BATCH_SIZE = config.BATCH_SIZE
 
 # create output folder
 full_path = create_output_folder()
@@ -310,6 +312,8 @@ def deeplabv3_plus(input_shape=(128,128,14),out_stride=16,num_classes=21):
 model=deeplabv3_plus(num_classes=1)
 print(model.summary())
 print("DeepLabV3PLUS")
+
+
 # Define call backs
 filepath = (full_path+"/"+"deeplabv3"+"_best-model.keras")
 checkpoint = ModelCheckpoint(filepath, monitor='val_f1_score', verbose=1, save_best_only=True, mode='max')
@@ -317,7 +321,7 @@ callback = [tf.keras.callbacks.LearningRateScheduler(scheduler), checkpoint]
 
 # Compile
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
 loss=jaccard_coef_loss,
 metrics=['accuracy',
          tf.keras.metrics.Recall(),
@@ -327,7 +331,7 @@ metrics=['accuracy',
 )
 
 # Train the Model with Early Stopping
-history = model.fit(X_train, y_train, epochs=100, batch_size=32, validation_data=(X_val, y_val), callbacks=[checkpoint])
+history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), callbacks=[checkpoint])
 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_deeplabv3_model.keras")

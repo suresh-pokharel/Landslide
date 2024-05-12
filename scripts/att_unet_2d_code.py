@@ -16,7 +16,10 @@ from tensorflow.keras.losses import BinaryCrossentropy
 import datetime, os, sys, glob, h5py, math
 
 # import custom functions
-from utils import eval_image, jaccard_coef, jaccard_coef_loss, compute_iou, compute_mean_iou, f1_score, load_h5_data, z_scale, calculate_means_stds, normalize, create_output_folder
+# import custom functions
+from utils import eval_image, jaccard_coef, jaccard_coef_loss, \
+            compute_iou, compute_mean_iou, f1_score, load_h5_data, \
+            z_scale, calculate_means_stds, normalize, create_output_folder, scheduler
 
 # import configurations
 import config
@@ -24,6 +27,8 @@ import config
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
 DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+NUM_EPOCHS = config.NUM_EPOCHS
+BATCH_SIZE = config.BATCH_SIZE
 
 # create output folder
 full_path = create_output_folder()
@@ -85,11 +90,6 @@ X_test = z_scale(X_test, means, stds)
 
 model = models.att_unet_2d((X_train.shape[-3], X_train.shape[-2], X_train.shape[-1]), [64, 128, 256, 512, 1024], n_labels=1, stack_num_down=2, stack_num_up=2, activation='ReLU', atten_activation='ReLU', attention='add', output_activation='Sigmoid', batch_norm=True, pool='max', unpool='nearest', name='attunet')
 
-def scheduler(epoch, lr):
-    if epoch < 10:
-        return lr
-    else:
-        return lr * tf.math.exp(-0.1)
 
 # Define call backs
 filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
@@ -98,7 +98,7 @@ callback = [tf.keras.callbacks.LearningRateScheduler(scheduler), checkpoint]
 
 # Compile
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
 loss=jaccard_coef_loss,
 metrics=['accuracy',
          tf.keras.metrics.Recall(),
@@ -108,7 +108,7 @@ metrics=['accuracy',
 )
 
 # Train the Model with Early Stopping
-history = model.fit(X_train, y_train, epochs=100, batch_size=32, validation_data=(X_val, y_val), callbacks=[callback])
+history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), callbacks=[callback])
 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}_{DATASET_TYPE}.keras")

@@ -3,12 +3,9 @@ from __future__ import absolute_import
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[61]:
-import math
-import glob
+# In[61]: 
 from PIL import Image
-import numpy as np
-import h5py
+import numpy as np 
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
 import tensorflow as tf
@@ -18,91 +15,26 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras_unet_collection import models,losses
 from tensorflow.keras import backend as K
 from keras.losses import Loss
-import logging, datetime, os, sys
+import datetime, os, sys, math, glob, h5py
 
 # import custom functions
 from utils import eval_image, jaccard_coef, jaccard_coef_loss, \
             compute_iou, compute_mean_iou, f1_score, load_h5_data, \
             z_scale, calculate_means_stds, normalize, create_output_folder, scheduler
+            
+# import configurations
+import config
 
+# read configurations
+DATASET_FOLDER = config.DATASET_FOLDER
+DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+NUM_EPOCHS = config.NUM_EPOCHS
+BATCH_SIZE = config.BATCH_SIZE
+
+# create output folder
 full_path = create_output_folder()
 print("Output Path: " + full_path)
-
-# Load your list of images/h5 and corresponding masks
-def load_image_data(image_paths):
-    image_paths = glob.glob(image_paths)
-    images = []
-    for path in image_paths:
-        img = Image.open(path)
-        # Preprocess your images as needed, e.g., resizing, normalization, etc.
-        img = np.array(img) / 255.0  # normalize to [0, 1]
-        images.append(img)
-    return np.array(images)
-
-def load_h5_data(paths):
-    paths = glob.glob(paths)
-    features = []
-    for path in paths:
-        # Open the HDF5 file in read mode
-        with h5py.File(path, 'r') as file:
-            # Get the first item (assume there is only one item at the top level)
-            item = list(file.values())[0]
-            features.append(np.array(item))
-    return np.array(features)
-
-
-def min_max_scaling(images, means, stds):
-    # Normalize the entire dataset
-    normalized_images = (images - means) / stds
-    
-    # Clip values to ensure they are in the range [0, 1]
-    normalized_images = np.clip(normalized_images, 0, 1)
-    return normalized_images
-
-def calculate_means_stds(image_data):
-    # Assuming image_data has shape (n, 128, 128, 14)
-    
-    # Calculate mean and standard deviation across all images and channels
-    means = np.mean(image_data, axis=(0, 1, 2))
-    stds = np.std(image_data, axis=(0, 1, 2))
-
-    return means, stds
-
-
-import tensorflow.keras.backend as K
-
-def f1_score(y_true, y_pred):
-    # Cast both y_true and y_pred to float32
-    y_true = K.cast(y_true, 'float32')
-    y_pred = K.cast(y_pred, 'float32')
-
-    # Ensure y_pred has the same shape as y_true
-    if K.ndim(y_pred) > K.ndim(y_true):
-        y_pred = K.squeeze(y_pred, axis=-1)
-    
-    # Calculate true positives, false positives, and false negatives
-    TP = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
-    FP = K.sum(K.round(K.clip(y_pred - y_true, 0, 1)))
-    FN = K.sum(K.round(K.clip(y_true - y_pred, 0, 1)))
-    
-    # Calculate precision and recall
-    precision = TP / (TP + FP + K.epsilon())
-    recall = TP / (TP + FN + K.epsilon())
-    
-    # Calculate F1 score
-    f1_score = 2 * (precision * recall) / (precision + recall + K.epsilon())
-    return f1_score
-
-# ### Prepare Datasets
-
-# In[67]:
-
-
-# dataset folder path
-DATASET_FOLDER = "/home/sureshp/Landslide/Suresh/datasets/"
-DATASET_TYPE = 'KERELA' # LANDSLIDE4SENSE or KERELA or ITALY
-
-logging.info('Dataset: ' + DATASET_TYPE)
+print('Dataset: ' + DATASET_TYPE)
 
 if DATASET_TYPE == 'LANDSLIDE4SENSE':
     dataset_path = DATASET_FOLDER + "Landslide4Sense_Dataset/"
@@ -392,11 +324,6 @@ def swin_unet_2d(input_size, filter_num_begin, n_labels, depth, stack_num_down, 
     
     return model
 
-def scheduler(epoch, lr):
-    if epoch < 10:
-        return lr
-    else:
-        return lr * tf.math.exp(-0.1)
 
 model = swin_unet_2d((128, 128, 14), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2, patch_size=(2, 2), num_heads=[4, 8, 8, 8], window_size=[4, 2, 2, 2], num_mlp=512, output_activation='Sigmoid', shift_window=True, name='swin_unet')
 
@@ -408,7 +335,7 @@ callback = [tf.keras.callbacks.LearningRateScheduler(scheduler), checkpoint]
 
 # Compile
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+optimizer=tf.keras.optimizers.Adam(learning_rate = LEARNING_RATE),
 loss=jaccard_coef_loss,
 metrics=[
 	 f1_score,
@@ -420,7 +347,7 @@ metrics=[
 )
 
 # Train the Model with Early Stopping
-history = model.fit(X_train, y_train, epochs=100, batch_size=64, validation_data=(X_val, y_val), callbacks=[checkpoint])
+history = model.fit(X_train, y_train, epochs = NUM_EPOCHS, batch_size = BATCH_SIZE, validation_data = (X_val, y_val), callbacks = [checkpoint])
 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}_{DATASET_TYPE}.keras")
@@ -428,7 +355,7 @@ np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_{DATASET_TYPE}_history.npy", h
 
 # Predict Masks on the Test Set
 y_pred = model.predict(X_test)
-predictions=(y_pred>0.5).astype(np.int8)
+predictions=(y_pred > 0.5).astype(np.int8)
 
 print("iou_score: " + str(compute_iou(predictions, y_test)))
 print("f1_score: " + str(compute_f1_score(predictions, y_test)))

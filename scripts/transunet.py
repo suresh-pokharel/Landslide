@@ -27,6 +27,8 @@ import config
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
 DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+NUM_EPOCHS = config.NUM_EPOCHS
+BATCH_SIZE = config.BATCH_SIZE
 
 # create output folder
 full_path = create_output_folder()
@@ -88,14 +90,9 @@ X_test = z_scale(X_test, means, stds)
 
 model = models.transunet_2d((128, 128, 14), filter_num=[64, 128, 256, 512], n_labels=1, stack_num_down=2, stack_num_up=2,
                                 embed_dim=768, num_mlp=3072, num_heads=12, num_transformer=12,
-                                activation='ReLU', mlp_activation='GELU', output_activation='Sigmoid',
+                                activation='ReLU', mlp_activation='RELU', output_activation='Sigmoid',
                                 batch_norm=True, pool=True, unpool='bilinear', name='transunet')
 
-def scheduler(epoch, lr):
-    if epoch < 10:
-        return lr
-    else:
-        return lr * tf.math.exp(-0.1)
 
 # Define call backs
 filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
@@ -104,7 +101,7 @@ callback = [tf.keras.callbacks.LearningRateScheduler(scheduler), checkpoint]
 
 # Compile model
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=0.001),
+optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
 loss=jaccard_coef_loss,
 metrics=['accuracy',
          tf.keras.metrics.Recall(),
@@ -114,7 +111,7 @@ metrics=['accuracy',
 )
 
 # Train the Model with Early Stopping
-history = model.fit(X_train, y_train, epochs=100, batch_size=64, validation_data=(X_val, y_val), callbacks=[callback])
+history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), callbacks=[callback])
 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")

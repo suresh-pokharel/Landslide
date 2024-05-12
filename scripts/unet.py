@@ -27,6 +27,8 @@ import config
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
 DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+NUM_EPOCHS = config.NUM_EPOCHS
+BATCH_SIZE = config.BATCH_SIZE
 
 # create output folder
 full_path = create_output_folder()
@@ -119,7 +121,7 @@ metrics=[
 )
 
 # Train the Model with Early Stopping
-history = model.fit(X_train, y_train, epochs=500, batch_size=32, validation_data=(X_val, y_val), shuffle=False, callbacks=[checkpoint])
+history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), shuffle=False, callbacks=[checkpoint])
 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")
