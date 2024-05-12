@@ -17,17 +17,24 @@ from tensorflow.keras.losses import BinaryCrossentropy
 import datetime, os, sys, glob, h5py, math
 
 # import custom functions
-from utils import eval_image, jaccard_coef, jaccard_coef_loss, compute_iou, compute_mean_iou, f1_score, load_h5_data, z_scale, calculate_means_stds, normalize, create_output_folder
+from utils import eval_image, jaccard_coef, jaccard_coef_loss, \
+            compute_iou, compute_mean_iou, f1_score, load_h5_data, \
+            z_scale, calculate_means_stds, normalize, create_output_folder, scheduler
+            
+# import configurations
+import config
 
+# read configurations
+DATASET_FOLDER = config.DATASET_FOLDER
+DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+
+# create output folder
 full_path = create_output_folder()
 print("Output Path: " + full_path)
+print('Dataset: ' + DATASET_TYPE)
+
 
 # ### Prepare Datasets
-
-# dataset folder path
-DATASET_FOLDER = "/home/sureshp/Landslide/Suresh/datasets/"
-DATASET_TYPE = 'KERELA' # LANDSLIDE4SENSE or KERELA or ITALY
-
 if DATASET_TYPE == 'LANDSLIDE4SENSE':
     dataset_path = DATASET_FOLDER + "Landslide4Sense_Dataset/"
     X_train = load_h5_data(dataset_path + "TrainData/img/*.h5")
@@ -100,7 +107,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_dice_coef', verbose=1, save_
 
 # Compile
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=0.01),
+optimizer=tf.keras.optimizers.Adam(learning_rate=config.learning_rate),
 loss = jaccard_coef_loss, #BinaryCrossentropy() #losses.dice, # jaccard_coef_loss
 metrics=[
 	 f1_score,

@@ -18,14 +18,18 @@ import datetime, os, sys, glob, h5py, math
 # import custom functions
 from utils import eval_image, jaccard_coef, jaccard_coef_loss, compute_iou, compute_mean_iou, f1_score, load_h5_data, z_scale, calculate_means_stds, normalize, create_output_folder
 
+# import configurations
+import config
+
+# read configurations
+DATASET_FOLDER = config.DATASET_FOLDER
+DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+
+# create output folder
 full_path = create_output_folder()
 print("Output Path: " + full_path)
-
-# dataset folder path
-DATASET_FOLDER = "/home/sureshp/Landslide/Suresh/datasets/"
-DATASET_TYPE = 'LANDSLIDE4SENSE' # LANDSLIDE4SENSE or KERELA or ITALY
-
 print('Dataset: ' + DATASET_TYPE)
+
 
 if DATASET_TYPE == 'LANDSLIDE4SENSE':
     dataset_path = DATASET_FOLDER + "Landslide4Sense_Dataset/"

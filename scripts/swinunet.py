@@ -21,7 +21,9 @@ from keras.losses import Loss
 import logging, datetime, os, sys
 
 # import custom functions
-from utils import eval_image, jaccard_coef, jaccard_coef_loss, compute_iou, compute_mean_iou, f1_score, load_h5_data, z_scale, calculate_means_stds, normalize, create_output_folder
+from utils import eval_image, jaccard_coef, jaccard_coef_loss, \
+            compute_iou, compute_mean_iou, f1_score, load_h5_data, \
+            z_scale, calculate_means_stds, normalize, create_output_folder, scheduler
 
 full_path = create_output_folder()
 print("Output Path: " + full_path)
