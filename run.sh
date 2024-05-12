@@ -6,7 +6,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --time=1000:00:00
 
-#SBATCH --output=/home/sureshp/Landslide/Suresh/outputs/%j.out
+#SBATCH --output=outputs/%j.out
 
 # Check if the model argument is provided
 if [ $# -eq 0 ]; then
@@ -16,11 +16,6 @@ fi
 
 # Assign the value of the model argument to a variable
 model=$1
-
-# GENERATE FOLDER NAME
-output_folder_path="/home/sureshp/Landslide/Suresh/outputs/"
-folder_name="$(date +'%Y%m%d')_${SLURM_JOB_ID}"
-full_path="$output_folder_path$folder_name"
 
 conda activate ls
 
