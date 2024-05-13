@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from PIL import Image
 import numpy as np 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, jaccard_score
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import MeanAbsoluteError, BinaryCrossentropy, CategoricalCrossentropy, SparseCategoricalCrossentropy
@@ -30,6 +30,7 @@ DATASET_FOLDER = config.DATASET_FOLDER
 DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
 NUM_EPOCHS = config.NUM_EPOCHS
 BATCH_SIZE = config.BATCH_SIZE
+LEARNING_RATE = config.LEARNING_RATE
 
 # create output folder
 full_path = create_output_folder()
@@ -83,10 +84,10 @@ print("y_test shape:", y_test.shape)
 # Find mean and standard dev from training set
 means, stds = calculate_means_stds(X_train)
 
-# Scale X-train, X_val, X_test with respect to means/stds from X_train
-X_train = min_max_scaling(X_train, means, stds)
-X_val = min_max_scaling(X_val, means, stds)
-X_test = min_max_scaling(X_test, means, stds)
+# Scale X_train, X_val, X_test with respect to means/stds from X_train
+X_train = z_scale(X_train, means, stds)
+X_val = z_scale(X_val, means, stds)
+X_test = z_scale(X_test, means, stds)
 
 # MODEL
 from keras_unet_collection.layer_utils import *
@@ -350,15 +351,45 @@ metrics=[
 history = model.fit(X_train, y_train, epochs = NUM_EPOCHS, batch_size = BATCH_SIZE, validation_data = (X_val, y_val), callbacks = [checkpoint])
 
 # Save model
-model.save(f"{full_path}/{DATASET_TYPE}_{model.name}_{DATASET_TYPE}.keras")
-np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_{DATASET_TYPE}_history.npy", history.history)
+model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")
+np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_history.npy", history.history)
 
-# Predict Masks on the Test Set
-y_pred = model.predict(X_test)
-predictions=(y_pred > 0.5).astype(np.int8)
+# Convert to appropriate type and check shapes
+y_test = y_test.astype(np.int8)
+predictions_test = (model.predict(X_test, batch_size=64) > 0.5).astype(np.int8)
+y_val = y_val.astype(np.int8)
+predictions_val = (model.predict(X_val, batch_size=64) > 0.5).astype(np.int8)
 
-print("iou_score: " + str(compute_iou(predictions, y_test)))
-print("f1_score: " + str(compute_f1_score(predictions, y_test)))
-print("precision: " + str(compute_precision(predictions, y_test)))
-print("recall:" + str(compute_recall(predictions, y_test)))
-print("SWIN_UNET")
+# Flatten the arrays
+y_test_flat = y_test.reshape(-1)
+predictions_test_flat = predictions_test.reshape(-1)
+
+y_val_flat = y_val.reshape(-1)
+predictions_val_flat = predictions_val.reshape(-1)
+
+#%%
+# Compute metrics for the Test set
+precision_test = precision_score(y_test_flat, predictions_test_flat)
+recall_test = recall_score(y_test_flat, predictions_test_flat)
+dice_coefficient_test = f1_score(y_test_flat, predictions_test_flat)
+jaccard_index_test = jaccard_score(y_test_flat, predictions_test_flat)
+
+# Compute metrics for the Validation set
+precision_val = precision_score(y_val_flat, predictions_val_flat)
+recall_val = recall_score(y_val_flat, predictions_val_flat)
+dice_coefficient_val = f1_score(y_val_flat, predictions_val_flat)
+jaccard_index_val = jaccard_score(y_val_flat, predictions_val_flat)
+
+print("Test Set Metrics:")
+print("Precision:", precision_test)
+print("Recall:", recall_test)
+print("Dice Coefficient (F1 Score):", dice_coefficient_test)
+print("Jaccard Index:", jaccard_index_test)
+
+print("\nValidation Set Metrics:")
+print("Precision:", precision_val)
+print("Recall:", recall_val)
+print("Dice Coefficient (F1 Score):", dice_coefficient_val)
+print("Jaccard Index:", jaccard_index_val)
+
+print(model.name)

@@ -29,6 +29,7 @@ DATASET_FOLDER = config.DATASET_FOLDER
 DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
 NUM_EPOCHS = config.NUM_EPOCHS
 BATCH_SIZE = config.BATCH_SIZE
+LEARNING_RATE = config.LEARNING_RATE
 
 # create output folder
 full_path = create_output_folder()
@@ -114,12 +115,42 @@ history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, 
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}_{DATASET_TYPE}.keras")
 np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_{DATASET_TYPE}_history.npy", history.history)
 
-# Predict Masks on the Test Set
-y_pred = model.predict(X_test)
-predictions=(y_pred>0.5).astype(np.int8)
+# Convert to appropriate type and check shapes
+y_test = y_test.astype(np.int8)
+predictions_test = (model.predict(X_test, batch_size=64) > 0.5).astype(np.int8)
+y_val = y_val.astype(np.int8)
+predictions_val = (model.predict(X_val, batch_size=64) > 0.5).astype(np.int8)
 
-print("iou_score: " + str(compute_iou(predictions, y_test)))
-print("f1_score: " + str(compute_f1_score(predictions, y_test)))
-print("precision: " + str(compute_precision(predictions, y_test)))
-print("recall:" + str(compute_recall(predictions, y_test)))
-print("ATTN_UNET_2D")
+# Flatten the arrays
+y_test_flat = y_test.reshape(-1)
+predictions_test_flat = predictions_test.reshape(-1)
+
+y_val_flat = y_val.reshape(-1)
+predictions_val_flat = predictions_val.reshape(-1)
+
+#%%
+# Compute metrics for the Test set
+precision_test = precision_score(y_test_flat, predictions_test_flat)
+recall_test = recall_score(y_test_flat, predictions_test_flat)
+dice_coefficient_test = f1_score(y_test_flat, predictions_test_flat)
+jaccard_index_test = jaccard_score(y_test_flat, predictions_test_flat)
+
+# Compute metrics for the Validation set
+precision_val = precision_score(y_val_flat, predictions_val_flat)
+recall_val = recall_score(y_val_flat, predictions_val_flat)
+dice_coefficient_val = f1_score(y_val_flat, predictions_val_flat)
+jaccard_index_val = jaccard_score(y_val_flat, predictions_val_flat)
+
+print("Test Set Metrics:")
+print("Precision:", precision_test)
+print("Recall:", recall_test)
+print("Dice Coefficient (F1 Score):", dice_coefficient_test)
+print("Jaccard Index:", jaccard_index_test)
+
+print("\nValidation Set Metrics:")
+print("Precision:", precision_val)
+print("Recall:", recall_val)
+print("Dice Coefficient (F1 Score):", dice_coefficient_val)
+print("Jaccard Index:", jaccard_index_val)
+
+print(model.name)

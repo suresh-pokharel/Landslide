@@ -29,6 +29,7 @@ DATASET_FOLDER = config.DATASET_FOLDER
 DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
 NUM_EPOCHS = config.NUM_EPOCHS
 BATCH_SIZE = config.BATCH_SIZE
+LEARNING_RATE = config.LEARNING_RATE
 
 # create output folder
 full_path = create_output_folder()
@@ -109,7 +110,7 @@ checkpoint = ModelCheckpoint(filepath, monitor='val_dice_coef', verbose=1, save_
 
 # Compile
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=config.learning_rate),
+optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
 loss = jaccard_coef_loss, #BinaryCrossentropy() #losses.dice, # jaccard_coef_loss
 metrics=[
 	 f1_score,
@@ -164,3 +165,5 @@ print("Precision:", precision_val)
 print("Recall:", recall_val)
 print("Dice Coefficient (F1 Score):", dice_coefficient_val)
 print("Jaccard Index:", jaccard_index_val)
+
+print(model.name)
