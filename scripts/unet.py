@@ -5,7 +5,7 @@
 from PIL import Image
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, precision_score, recall_score, jaccard_score
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, jaccard_score, f1_score
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
@@ -16,10 +16,10 @@ from keras.losses import Loss
 from tensorflow.keras.losses import BinaryCrossentropy
 import datetime, os, sys, glob, h5py, math
 
+import segmentation_models as sm
+
 # import custom functions
-from utils import eval_image, jaccard_coef, jaccard_coef_loss, \
-            compute_iou, compute_mean_iou, f1_score, load_h5_data, \
-            z_scale, calculate_means_stds, normalize, create_output_folder, scheduler
+from utils import *
             
 # import configurations
 import config
@@ -80,44 +80,45 @@ print("y_val shape:", y_val.shape)
 print("X_test shape:", X_test.shape)
 print("y_test shape:", y_test.shape)
 
+# Type Cast
+y_train = y_train.astype(np.float32)
+y_val = y_val.astype(np.float32)
+y_test = y_test.astype(np.float32)
 
 # Scale the images
 # Find mean and standard dev from training set 
 means, stds = calculate_means_stds(X_train)
 
 # From LandSlide4Sense
-# means = np.array([-0.4914, -0.3074, -0.1277, -0.0625, 0.0439, 0.0803, 0.0644, 0.0802, 0.3000, 0.4082, 0.0823, 0.0516, 0.3338, 0.7819])
-# stds = np.array([0.9325, 0.8775, 0.8860, 0.8869, 0.8857, 0.8418, 0.8354, 0.8491, 0.9061, 1.6072, 0.8848, 0.9232, 0.9018, 1.2913])
+#means = np.array([-0.4914, -0.3074, -0.1277, -0.0625, 0.0439, 0.0803, 0.0644, 0.0802, 0.3000, 0.4082, 0.0823, 0.0516, 0.3338, 0.7819])
+#stds = np.array([0.9325, 0.8775, 0.8860, 0.8869, 0.8857, 0.8418, 0.8354, 0.8491, 0.9061, 1.6072, 0.8848, 0.9232, 0.9018, 1.2913])
 
 # Scale X-train, X_val, X_test with respect to means/stds from X_train
-X_train = z_scale(X_train, means, stds)
-X_val = z_scale(X_val, means, stds)
-X_test = z_scale(X_test, means, stds)
+X_train = z_score_normalization(X_train, means, stds)
+X_val = z_score_normalization(X_val, means, stds)
+X_test = z_score_normalization(X_test, means, stds)
 
-#X_train = normalize(X_train)
-#X_val = normalize(X_val)
-#X_test = normalize(X_test)
+X_train = min_max_scaling(X_train)
+X_val = min_max_scaling(X_val)
+X_test = min_max_scaling(X_test)
 
+# define model
 model = models.unet_2d((128, 128, 14), [64, 128, 256, 512, 1024], n_labels=1,
                                stack_num_down=2, stack_num_up=1,
                                activation='ReLU', output_activation='Sigmoid', 
-                               batch_norm=True, pool='max', unpool='nearest', name='unet_2d'
+                               batch_norm=False, pool='max', unpool='nearest', name='unet_2d'
                               )
 
 # Define call backs
 filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
-checkpoint = ModelCheckpoint(filepath, monitor='val_dice_coef', verbose=1, save_best_only=True, mode='max')
+checkpoint = ModelCheckpoint(filepath, monitor='val_iou_score', verbose=1, save_best_only=True, mode='max')
 
 # Compile
 model.compile(
 optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-loss = jaccard_coef_loss, #BinaryCrossentropy() #losses.dice, # jaccard_coef_loss
+loss = sm.losses.DiceLoss(), #BinaryCrossentropy(), #losses.dice, # jaccard_coef_loss
 metrics=[
-	 f1_score,
-         losses.dice_coef,
-         tf.keras.metrics.Recall(), 
-         tf.keras.metrics.Precision(),
-         tf.keras.metrics.MeanIoU(num_classes=2)
+	sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5)
         ]
 )
 
@@ -131,6 +132,8 @@ np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_history.npy", history.history)
 # Convert to appropriate type and check shapes
 y_test = y_test.astype(np.int8)
 predictions_test = (model.predict(X_test, batch_size=64) > 0.5).astype(np.int8)
+
+
 y_val = y_val.astype(np.int8)
 predictions_val = (model.predict(X_val, batch_size=64) > 0.5).astype(np.int8)
 

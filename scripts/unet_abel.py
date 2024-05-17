@@ -145,6 +145,7 @@ masks_val = load_h5_data(dataset_path + "ValidData/mask/*.h5")
 #    print(np.mean(imgs_val_ar[:,:,:,i]), np.max(imgs_val_ar[:,:,:,i]), np.min(imgs_val_ar[:,:,:,i]), np.std(imgs_val_ar[:,:,:,i]))
 #    means.append(np.mean(imgs_val_ar[:,:,:,i]))
 #    stds.append(np.std(imgs_val_ar[:,:,:,i]))
+
 if norm:
     imgs_val_norm=[]
     for img in imgs_val:
