@@ -113,15 +113,15 @@ model = models.unet_2d((128, 128, 14), [64, 128, 256, 512, 1024], n_labels=1,
 filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
 checkpoint = ModelCheckpoint(filepath, monitor='val_iou_score', verbose=1, save_best_only=True, mode='max')
 
-# Compile
-model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-loss = sm.losses.DiceLoss(), #BinaryCrossentropy(), #losses.dice, # jaccard_coef_loss
-metrics=[
-	sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5)
-        ]
-)
+# Define combined loss
+loss = sm.losses.DiceLoss() + sm.losses.BinaryFocalLoss()
 
+# Compile the model
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
+    loss=loss,
+    metrics=[sm.metrics.IOUScore(threshold=0.5), sm.metrics.FScore(threshold=0.5)]
+)
 # Train the Model with Early Stopping
 history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), shuffle=False, callbacks=[checkpoint])
 
