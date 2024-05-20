@@ -8,7 +8,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 
 from keras_unet_collection import models,losses
 from tensorflow.keras import backend as K
-from keras.losses import Loss
+#from keras.losses import Loss
 from tensorflow.keras.losses import BinaryCrossentropy
 import datetime, os, sys, glob, h5py, math
 
@@ -38,6 +38,41 @@ def load_h5_data(paths):
             features.append(np.array(item))
     return np.array(features)
 
+def prepare_dataset(DATASET_TYPE, DATASET_FOLDER):
+    # ### Prepare Datasets
+    if DATASET_TYPE == 'LANDSLIDE4SENSE':
+        dataset_path = DATASET_FOLDER + "Landslide4Sense_Dataset/"
+        X_train = load_h5_data(dataset_path + "TrainData/img/*.h5")
+        y_train = load_h5_data(dataset_path + "TrainData/mask/*.h5")
+        X_val = load_h5_data(dataset_path + "ValidData/img/*.h5")
+        y_val = load_h5_data(dataset_path + "ValidData/mask/*.h5")
+        X_test = load_h5_data(dataset_path + "TestData/img/*.h5")
+        y_test = load_h5_data(dataset_path + "TestData/mask/*.h5")
+    elif DATASET_TYPE == 'KERELA':
+        dataset_path = DATASET_FOLDER + "new_dataset/new_dataset_h5/"
+        X = load_h5_data(dataset_path + "images/*.h5")
+        y = load_h5_data(dataset_path + "masks/*.h5")
+
+        # Split the data into training, validation, and test sets
+        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+
+    elif DATASET_TYPE == 'ITALY':
+        dataset_path = DATASET_FOLDER + "new_dataset_Italy/new_dataset_Italy_h5/"
+        X = load_h5_data(dataset_path + "images/*.h5")
+        y = load_h5_data(dataset_path + "masks/*.h5")
+
+        # Split the data into training, validation, and test sets
+        X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
+        X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    else:
+        print("No dataset found!")
+        return 0
+    
+    # return
+    return X_train, X_val, X_test, y_train, y_val, y_test
+
+
 # Load your list of images/h5 and corresponding masks
 def load_image_data(image_paths):
     image_paths = glob.glob(image_paths)
@@ -55,8 +90,8 @@ def z_score_normalization(images, means, stds):
     scaled_image = (images - means) / stds
     
     # Clip values to ensure they are in the range [0, 1]
-    #normalized_images = np.clip(normalized_images, 0, 1)
-    return scaled_image
+    clipped_images = np.clip(scaled_image, 0, 1)
+    return clipped_images
     
 def z_score_normalization_double_sd(images, means, stds):
     # z-scaling the entire dataset
@@ -98,4 +133,26 @@ def scheduler(epoch, lr):
     else:
         return lr * tf.math.exp(-0.1)
 
+def f1_score_custom(y_true, y_pred):
+    # Cast both y_true and y_pred to float32
+    y_true = K.cast(y_true, 'float32')
+    y_pred = K.cast(y_pred, 'float32')
+
+    # Ensure y_pred has the same shape as y_true
+    if K.ndim(y_pred) > K.ndim(y_true):
+        y_pred = K.squeeze(y_pred, axis=-1)
+    
+    # Calculate true positives, false positives, and false negatives
+    TP = K.sum(K.round(K.clip(y_true * y_pred, 0, 1)))
+    FP = K.sum(K.round(K.clip(y_pred - y_true, 0, 1)))
+    FN = K.sum(K.round(K.clip(y_true - y_pred, 0, 1)))
+    
+    # Calculate precision and recall
+    precision = TP / (TP + FP + K.epsilon())
+    recall = TP / (TP + FN + K.epsilon())
+    
+    # Calculate F1 score
+    f1_score = 2 * (precision * recall) / (precision + recall + K.epsilon())
+    return f1_score
+    
 
