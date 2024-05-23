@@ -4,8 +4,6 @@ from tensorflow.keras.losses import Loss
 from tensorflow.keras import backend as K
 import tensorflow as tf
 
-
-
 def TverskyLoss(targets, inputs, alpha=0.5, beta=0.5, smooth=1e-6):
         
         #flatten label and prediction tensors

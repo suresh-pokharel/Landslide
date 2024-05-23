@@ -7,7 +7,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, precision_score, recall_score, jaccard_score, f1_score
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
 from keras_unet_collection import models,losses
 from tensorflow.keras import backend as K
 from keras.losses import Loss
@@ -78,9 +78,9 @@ X_test = z_score_normalization(X_test, means, stds)
 #X_test = normalize(X_test)
 
 
-#X_train = min_max_scaling(X_train)
-#X_val = min_max_scaling(X_val)
-#X_test = min_max_scaling(X_test)
+X_train = min_max_scaling(X_train)
+X_val = min_max_scaling(X_val)
+X_test = min_max_scaling(X_test)
 
 # define model
 model = models.unet_2d((128, 128, 14), [64, 128, 256, 512, 1024], n_labels=1,
@@ -90,13 +90,17 @@ model = models.unet_2d((128, 128, 14), [64, 128, 256, 512, 1024], n_labels=1,
                               )
 
 # Define call backs
+# best model path
 filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
 
-#es
-early_stopping = EarlyStopping(monitor='val_iou_score', patience=9, restore_best_weights=True, mode='max')
+#early stopping
+es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
 
-#cp
-checkpoint = ModelCheckpoint(filepath, monitor='val_f1-score', verbose=1, save_best_only=True, mode='max')
+#checkpoint
+checkpoint = ModelCheckpoint(filepath, monitor='val_dice_score', verbose=1, save_best_only=True, mode='max')
+
+# lr_scheduler
+lr_shceduler = LearningRateScheduler(lambda _, lr: lr * np.exp(-0.1), verbose=1)
     
 # Define combined loss
 loss_1 = sm.losses.DiceLoss()
@@ -114,7 +118,7 @@ loss_A = loss_1 + loss_2
 # Compile the model
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-    loss = loss_4,
+    loss = loss_1,
     metrics=['accuracy',
          sm.metrics.Recall(),
          sm.metrics.Precision(),
@@ -125,7 +129,7 @@ model.compile(
 )
 
 # Train the Model with Early Stopping
-history = model.fit(X_train[:100], y_train_1[:100], epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val_1), shuffle=False, callbacks=[early_stopping])
+history = model.fit(X_train, y_train_1, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val_1), shuffle=False, callbacks=[checkpoint])
 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")

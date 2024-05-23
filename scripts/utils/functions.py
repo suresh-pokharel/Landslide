@@ -155,4 +155,3 @@ def f1_score_custom(y_true, y_pred):
     f1_score = 2 * (precision * recall) / (precision + recall + K.epsilon())
     return f1_score
     
-
