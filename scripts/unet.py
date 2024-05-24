@@ -24,7 +24,7 @@ import config
 
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
-DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY or SKIN_LESION
 NUM_EPOCHS = config.NUM_EPOCHS
 BATCH_SIZE = config.BATCH_SIZE
 LEARNING_RATE = config.LEARNING_RATE
@@ -68,16 +68,16 @@ means, stds = calculate_means_stds(X_train)
 #stds = np.array([0.9325, 0.8775, 0.8860, 0.8869, 0.8857, 0.8418, 0.8354, 0.8491, 0.9061, 1.6072, 0.8848, 0.9232, 0.9018, 1.2913])
 
 # Scale X-train, X_val, X_test with respect to means/stds from X_train
-X_train = z_score_normalization(X_train, means, stds)
-X_val = z_score_normalization(X_val, means, stds)
-X_test = z_score_normalization(X_test, means, stds)
+# X_train = z_score_normalization(X_train, means, stds)
+# X_val = z_score_normalization(X_val, means, stds)
+# X_test = z_score_normalization(X_test, means, stds)
 
+# Normalize
+X_train = normalize(X_train)
+X_val = normalize(X_val)
+X_test = normalize(X_test)
 
-#X_train = normalize(X_train)
-#X_val = normalize(X_val)
-#X_test = normalize(X_test)
-
-
+# Scale
 X_train = min_max_scaling(X_train)
 X_val = min_max_scaling(X_val)
 X_test = min_max_scaling(X_test)
@@ -172,5 +172,4 @@ print("Precision:", precision_val)
 print("Recall:", recall_val)
 print("Dice Coefficient (F1 Score):", dice_coefficient_val)
 print("Jaccard Index:", jaccard_index_val)
-
 print(model.name)

@@ -2,3 +2,4 @@ datasets/
 trash/
 scripts/__pycache__/
 outputs/
+scripts/utils/__pycache__/

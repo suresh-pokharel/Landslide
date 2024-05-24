@@ -65,6 +65,40 @@ def prepare_dataset(DATASET_TYPE, DATASET_FOLDER):
         # Split the data into training, validation, and test sets
         X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
         X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+    elif DATASET_TYPE == 'SKIN_LESION':
+
+        # Define dataset path
+        dataset_path = DATASET_FOLDER + "skin_lesion/"
+
+        # Define patterns for image and mask files
+        x_train_pattern = dataset_path + "ISBI2016_ISIC_Part1_Training_Data/*.jpg"
+        y_train_pattern = dataset_path + "ISBI2016_ISIC_Part1_Training_GroundTruth/*_Segmentation.png"
+
+        # Get the list of image and mask files
+        x_train_files = glob.glob(x_train_pattern)
+        y_train_files = glob.glob(y_train_pattern)
+
+        # Extract base file names without extensions
+        x_train_names = [os.path.basename(file).replace('.jpg', '') for file in x_train_files]
+        y_train_names = [os.path.basename(file).replace('_Segmentation.png', '') for file in y_train_files]
+
+        # Find common file names between X_train and y_train
+        common_names = set(x_train_names).intersection(y_train_names)
+
+        # Filter X_train and y_train to keep only the common images
+        X_train = [file for file in x_train_files if os.path.basename(file).replace('.jpg', '') in common_names]
+        y_train = [file for file in y_train_files if os.path.basename(file).replace('_Segmentation.png', '') in common_names]
+
+        # Check the number of matched images
+        print(f"Number of matched images: {len(common_names)}")
+        
+        # Split the data into training, validation, and test sets
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+    	
+     
+        X_test = load_image_data(dataset_path + "ISBI2016_ISIC_Part1_Test_Data/*.jpg")
+        y_test = load_image_data(dataset_path + "ISBI2016_ISIC_Part1_Test_GroundTruth/*.png")
+        
     else:
         print("No dataset found!")
         return 0
