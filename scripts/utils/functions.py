@@ -77,7 +77,7 @@ def prepare_dataset(DATASET_TYPE, DATASET_FOLDER):
         # Get the list of image and mask files
         x_train_files = glob.glob(x_train_pattern)
         y_train_files = glob.glob(y_train_pattern)
-
+        
         # Extract base file names without extensions
         x_train_names = [os.path.basename(file).replace('.jpg', '') for file in x_train_files]
         y_train_names = [os.path.basename(file).replace('_Segmentation.png', '') for file in y_train_files]
@@ -86,18 +86,20 @@ def prepare_dataset(DATASET_TYPE, DATASET_FOLDER):
         common_names = set(x_train_names).intersection(y_train_names)
 
         # Filter X_train and y_train to keep only the common images
-        X_train = [file for file in x_train_files if os.path.basename(file).replace('.jpg', '') in common_names]
-        y_train = [file for file in y_train_files if os.path.basename(file).replace('_Segmentation.png', '') in common_names]
+        x_train_names = [file for file in x_train_files if os.path.basename(file).replace('.jpg', '') in common_names]
+        y_train_names = [file for file in y_train_files if os.path.basename(file).replace('_Segmentation.png', '') in common_names]
 
         # Check the number of matched images
         print(f"Number of matched images: {len(common_names)}")
+
+        X_train = load_image_data(x_train_names)
+        y_train = load_image_data(y_train_names)
         
         # Split the data into training, validation, and test sets
         X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
     	
-     
-        X_test = load_image_data(dataset_path + "ISBI2016_ISIC_Part1_Test_Data/*.jpg")
-        y_test = load_image_data(dataset_path + "ISBI2016_ISIC_Part1_Test_GroundTruth/*.png")
+        X_test = load_image_data(glob.glob(dataset_path + "ISBI2016_ISIC_Part1_Test_Data/*.jpg"))
+        y_test = load_image_data(glob.glob(dataset_path + "ISBI2016_ISIC_Part1_Test_GroundTruth/*.png"))
         
     else:
         print("No dataset found!")
@@ -109,13 +111,11 @@ def prepare_dataset(DATASET_TYPE, DATASET_FOLDER):
 
 # Load your list of images/h5 and corresponding masks
 def load_image_data(image_paths):
-    image_paths = glob.glob(image_paths)
+    SIZE = 224
+    # image_paths = glob.glob(image_paths)
     images = []
     for path in image_paths:
-        img = Image.open(path)
-        
-	# Preprocess your images as needed, e.g., resizing, normalization, etc.
-        img = np.array(img) / 255.0  # normalize to [0, 1]
+        img = np.array(Image.open(path).resize((SIZE,SIZE)), dtype=np.float32)/255.0
         images.append(img)
     return np.array(images)
     
