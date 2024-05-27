@@ -83,7 +83,7 @@ X_val = min_max_scaling(X_val)
 X_test = min_max_scaling(X_test)
 
 # define model
-model = models.unet_2d((128, 128, 14), [64, 128, 256, 512, 1024], n_labels=1,
+model = models.unet_2d((X_train.shape[1], X_train.shape[2], X_train.shape[3]), [64, 128, 256, 512, 1024], n_labels=1,
                                stack_num_down=2, stack_num_up=1,
                                activation='GELU', output_activation='Sigmoid',
                                batch_norm=False, pool='max', unpool='nearest', name='unet'
