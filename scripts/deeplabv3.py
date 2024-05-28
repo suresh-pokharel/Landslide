@@ -19,16 +19,15 @@ import tensorflow as tf
 import logging, datetime, os, sys
 
 # import custom functions
-from utils import eval_image, jaccard_coef, jaccard_coef_loss, \
-			compute_iou, compute_mean_iou, f1_score, load_h5_data, \
-			z_scale, calculate_means_stds, normalize, create_output_folder, scheduler
+from utils.functions import *
+from utils.loss_functions import *
 
 # import configurations
 import config
 
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
-DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+DATASET_TYPE = config.DATASET_TYPE 		# LANDSLIDE4SENSE or KERELA or ITALY or SKIN_LESION
 NUM_EPOCHS = config.NUM_EPOCHS
 BATCH_SIZE = config.BATCH_SIZE
 LEARNING_RATE = config.LEARNING_RATE
@@ -206,7 +205,7 @@ def aspp(x,input_shape,out_stride):
 	x=Concatenate()([b4,b0,b1,b2,b3])
 	return x
 
-def deeplabv3_plus(input_shape=(128,128,14),out_stride=16,num_classes=21):
+def deeplabv3_plus(input_shape=(X_train.shape[1], X_train.shape[2], X_train.shape[3]),out_stride=16,num_classes=21):
 	img_input=Input(shape=input_shape)
 	x=Conv2D(32,(3,3),strides=(2,2),padding="same",use_bias=False)(img_input)
 	x=BatchNormalization()(x)
@@ -315,18 +314,41 @@ model.name="DeepLabV3PLUS"
 print(model.summary())
 
 # Define call backs
-filepath = (full_path+"/"+"deeplabv3"+"_best-model.keras")
-checkpoint = ModelCheckpoint(filepath, monitor='val_f1_score', verbose=1, save_best_only=True, mode='max')
-callback = [tf.keras.callbacks.LearningRateScheduler(scheduler), checkpoint]
+# best model path
+filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
 
-# Compile
+#early stopping
+es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
+
+#checkpoint
+checkpoint = ModelCheckpoint(filepath, monitor='val_dice_score', verbose=1, save_best_only=True, mode='max')
+
+# lr_scheduler
+lr_shceduler = LearningRateScheduler(lambda _, lr: lr * np.exp(-0.1), verbose=1)
+    
+# Define combined loss
+loss_1 = sm.losses.DiceLoss()
+loss_2 = sm.losses.JaccardLoss()
+loss_3 = sm.losses.BinaryFocalLoss()
+loss_4 = sm.losses.BinaryCELoss()
+loss_5 = GeneralizedDiceLoss()
+loss_6 = TverskyLoss
+loss_7 = IoULoss
+loss_8 = k_lovasz_hinge(per_image=True)
+
+# Combined loss functions
+loss_A = loss_1 + loss_2
+
+# Compile the model
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
-loss=jaccard_coef_loss,
-metrics=['accuracy',
-         tf.keras.metrics.Recall(),
-         tf.keras.metrics.Precision(),
-         f1_score
+    optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
+    loss = loss_1,
+    metrics=['accuracy',
+         sm.metrics.Recall(),
+         sm.metrics.Precision(),
+         sm.metrics.FScore(),
+         sm.metrics.IOUScore(),
+         sm.metrics.DICEScore()
         ]
 )
 

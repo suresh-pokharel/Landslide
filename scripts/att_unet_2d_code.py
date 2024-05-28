@@ -1,6 +1,5 @@
 # coding: utf-8
 
-# In[61]:
 from PIL import Image
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -16,17 +15,15 @@ from tensorflow.keras.losses import BinaryCrossentropy
 import datetime, os, sys, glob, h5py, math
 
 # import custom functions
-# import custom functions
-from utils import eval_image, jaccard_coef, jaccard_coef_loss, \
-            compute_iou, compute_mean_iou, f1_score, load_h5_data, \
-            z_scale, calculate_means_stds, normalize, create_output_folder, scheduler
+from utils.functions import *
+from utils.loss_functions import *
 
 # import configurations
 import config
 
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
-DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY or SKIN_LESION
 NUM_EPOCHS = config.NUM_EPOCHS
 BATCH_SIZE = config.BATCH_SIZE
 LEARNING_RATE = config.LEARNING_RATE
@@ -35,7 +32,6 @@ LEARNING_RATE = config.LEARNING_RATE
 full_path = create_output_folder()
 print("Output Path: " + full_path)
 print('Dataset: ' + DATASET_TYPE)
-
 
 if DATASET_TYPE == 'LANDSLIDE4SENSE':
     dataset_path = DATASET_FOLDER + "Landslide4Sense_Dataset/"
@@ -91,20 +87,42 @@ X_test = z_scale(X_test, means, stds)
 
 model = models.att_unet_2d((X_train.shape[-3], X_train.shape[-2], X_train.shape[-1]), [64, 128, 256, 512, 1024], n_labels=1, stack_num_down=2, stack_num_up=2, activation='ReLU', atten_activation='ReLU', attention='add', output_activation='Sigmoid', batch_norm=True, pool='max', unpool='nearest', name='attunet')
 
-
 # Define call backs
+# best model path
 filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
-checkpoint = ModelCheckpoint(filepath, monitor='val_dice_coef', verbose=1, save_best_only=True, mode='max')
-callback = [tf.keras.callbacks.LearningRateScheduler(scheduler), checkpoint]
 
-# Compile
+#early stopping
+es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
+
+#checkpoint
+checkpoint = ModelCheckpoint(filepath, monitor='val_dice_score', verbose=1, save_best_only=True, mode='max')
+
+# lr_scheduler
+lr_shceduler = LearningRateScheduler(lambda _, lr: lr * np.exp(-0.1), verbose=1)
+    
+# Define combined loss
+loss_1 = sm.losses.DiceLoss()
+loss_2 = sm.losses.JaccardLoss()
+loss_3 = sm.losses.BinaryFocalLoss()
+loss_4 = sm.losses.BinaryCELoss()
+loss_5 = GeneralizedDiceLoss()
+loss_6 = TverskyLoss
+loss_7 = IoULoss
+loss_8 = k_lovasz_hinge(per_image=True)
+
+# Combined loss functions
+loss_A = loss_1 + loss_2
+
+# Compile the model
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate=LEARNING_RATE),
-loss=jaccard_coef_loss,
-metrics=['accuracy',
-         tf.keras.metrics.Recall(),
-         tf.keras.metrics.Precision(),
-         f1_score
+    optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
+    loss = loss_1,
+    metrics=['accuracy',
+         sm.metrics.Recall(),
+         sm.metrics.Precision(),
+         sm.metrics.FScore(),
+         sm.metrics.IOUScore(),
+         sm.metrics.DICEScore()
         ]
 )
 

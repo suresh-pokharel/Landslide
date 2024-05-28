@@ -18,16 +18,15 @@ from keras.losses import Loss
 import datetime, os, sys, math, glob, h5py
 
 # import custom functions
-from utils import eval_image, jaccard_coef, jaccard_coef_loss, \
-            compute_iou, compute_mean_iou, f1_score, load_h5_data, \
-            z_scale, calculate_means_stds, normalize, create_output_folder, scheduler
-            
+from utils.functions import *
+from utils.loss_functions import *
+
 # import configurations
 import config
 
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
-DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY
+DATASET_TYPE = config.DATASET_TYPE # LANDSLIDE4SENSE or KERELA or ITALY or SKIN_LESION
 NUM_EPOCHS = config.NUM_EPOCHS
 BATCH_SIZE = config.BATCH_SIZE
 LEARNING_RATE = config.LEARNING_RATE
@@ -326,24 +325,44 @@ def swin_unet_2d(input_size, filter_num_begin, n_labels, depth, stack_num_down, 
     return model
 
 
-model = swin_unet_2d((128, 128, 14), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2, patch_size=(2, 2), num_heads=[4, 8, 8, 8], window_size=[4, 2, 2, 2], num_mlp=512, output_activation='Sigmoid', shift_window=True, name='swin_unet')
+model = swin_unet_2d((X_train.shape[1], X_train.shape[2], X_train.shape[3]), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2, patch_size=(2, 2), num_heads=[4, 8, 8, 8], window_size=[4, 2, 2, 2], num_mlp=512, output_activation='Sigmoid', shift_window=True, name='swin_unet')
 
 # Define call backs
+# best model path
 filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
-checkpoint = ModelCheckpoint(filepath, monitor='val_dice_coef', verbose=1, save_best_only=True, mode='max')
 
-callback = [tf.keras.callbacks.LearningRateScheduler(scheduler), checkpoint]
+#early stopping
+es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
 
-# Compile
+#checkpoint
+checkpoint = ModelCheckpoint(filepath, monitor='val_dice_score', verbose=1, save_best_only=True, mode='max')
+
+# lr_scheduler
+lr_shceduler = LearningRateScheduler(lambda _, lr: lr * np.exp(-0.1), verbose=1)
+    
+# Define combined loss
+loss_1 = sm.losses.DiceLoss()
+loss_2 = sm.losses.JaccardLoss()
+loss_3 = sm.losses.BinaryFocalLoss()
+loss_4 = sm.losses.BinaryCELoss()
+loss_5 = GeneralizedDiceLoss()
+loss_6 = TverskyLoss
+loss_7 = IoULoss
+loss_8 = k_lovasz_hinge(per_image=True)
+
+# Combined loss functions
+loss_A = loss_1 + loss_2
+
+# Compile the model
 model.compile(
-optimizer=tf.keras.optimizers.Adam(learning_rate = LEARNING_RATE),
-loss=jaccard_coef_loss,
-metrics=[
-	 f1_score,
-         losses.dice_coef,
-         tf.keras.metrics.Recall(), 
-         tf.keras.metrics.Precision(),
-         tf.keras.metrics.MeanIoU(num_classes=2)
+    optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
+    loss = loss_1,
+    metrics=['accuracy',
+         sm.metrics.Recall(),
+         sm.metrics.Precision(),
+         sm.metrics.FScore(),
+         sm.metrics.IOUScore(),
+         sm.metrics.DICEScore()
         ]
 )
 
