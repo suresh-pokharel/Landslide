@@ -5,10 +5,10 @@ import numpy as np
 import h5py
 from PIL import Image
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, precision_score, recall_score, jaccard_score
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, jaccard_score, f1_score
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import MeanAbsoluteError, BinaryCrossentropy, CategoricalCrossentropy, SparseCategoricalCrossentropy
-from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
 from tensorflow.keras.losses import Loss
 from tensorflow.keras.layers import Activation,Conv2D,MaxPooling2D,BatchNormalization,Input,DepthwiseConv2D,add,Dropout,AveragePooling2D,Concatenate, Dense
 from tensorflow.keras.models import Model
@@ -17,6 +17,7 @@ from tensorflow.python.keras.utils import conv_utils
 import tensorflow.keras.backend as K
 import tensorflow as tf
 import logging, datetime, os, sys
+import segmentation_models as sm
 
 # import custom functions
 from utils.functions import *
@@ -37,40 +38,13 @@ full_path = create_output_folder()
 print("Output Path: " + full_path)
 print('Dataset: ' + DATASET_TYPE)
 
-
-if DATASET_TYPE == 'LANDSLIDE4SENSE':
-    dataset_path = DATASET_FOLDER + "Landslide4Sense_Dataset/"
-    X_train = load_h5_data(dataset_path + "TrainData/img/*.h5")
-    y_train = load_h5_data(dataset_path + "TrainData/mask/*.h5")
-    X_val = load_h5_data(dataset_path + "ValidData/img/*.h5")
-    y_val = load_h5_data(dataset_path + "ValidData/mask/*.h5")
-    X_test = load_h5_data(dataset_path + "TestData/img/*.h5")
-    y_test = load_h5_data(dataset_path + "TestData/mask/*.h5")
-elif DATASET_TYPE == 'KERELA':
-    dataset_path = DATASET_FOLDER + "new_dataset/new_dataset_h5/"
-    X = load_h5_data(dataset_path + "images/*.h5")
-    y = load_h5_data(dataset_path + "masks/*.h5")
-
-    # Split the data into training, validation, and test sets
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
-
-elif DATASET_TYPE == 'ITALY':
-    dataset_path = DATASET_FOLDER + "new_dataset_Italy/new_dataset_Italy_h5/"
-    X = load_h5_data(dataset_path + "images/*.h5")
-    y = load_h5_data(dataset_path + "masks/*.h5")
-
-    # Split the data into training, validation, and test sets
-    X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.2, random_state=42)
-    X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
-else:
-    print("No dataset found!")
+# process and get dataset ready
+X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset(DATASET_TYPE, DATASET_FOLDER)
 
 # Expand dimensions for y-train, y_val, y_test to make similar dimension with output of model
 y_train = np.expand_dims(y_train, axis=-1)
 y_val = np.expand_dims(y_val, axis=-1)
 y_test = np.expand_dims(y_test, axis=-1)
-
 
 # Print shapes of dataset splits
 print("X_train shape:", X_train.shape)
@@ -80,15 +54,24 @@ print("y_val shape:", y_val.shape)
 print("X_test shape:", X_test.shape)
 print("y_test shape:", y_test.shape)
 
-
 # Scale the images
 # Find mean and standard dev from training set
 means, stds = calculate_means_stds(X_train)
 
 # Scale X-train, X_val, X_test with respect to means/stds from X_train
-X_train = z_scale(X_train, means, stds)
-X_val = z_scale(X_val, means, stds)
-X_test = z_scale(X_test, means, stds)
+# X_train = z_score_normalization(X_train, means, stds)
+# X_val = z_score_normalization(X_val, means, stds)
+# X_test = z_score_normalization(X_test, means, stds)
+
+# Normalize
+X_train = normalize(X_train)
+X_val = normalize(X_val)
+X_test = normalize(X_test)
+
+# Scale
+X_train = min_max_scaling(X_train)
+X_val = min_max_scaling(X_val)
+X_test = min_max_scaling(X_test)
 
 # MODEL: Deeplab v3
 class BilinearUpsampling(Layer):
@@ -310,7 +293,7 @@ def deeplabv3_plus(input_shape=(X_train.shape[1], X_train.shape[2], X_train.shap
 
 # Define Model
 model=deeplabv3_plus(num_classes=1)
-model.name="DeepLabV3PLUS"
+#model.name="DeepLabV3PLUS"
 print(model.summary())
 
 # Define call backs
@@ -353,7 +336,7 @@ model.compile(
 )
 
 # Train the Model with Early Stopping
-history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), callbacks=[checkpoint])
+history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), shuffle=False, callbacks=[checkpoint])
 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")

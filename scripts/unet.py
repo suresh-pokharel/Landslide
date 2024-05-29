@@ -48,8 +48,8 @@ y_val = y_val.astype(np.float32)
 y_test = y_test.astype(np.float32)
 
 # Type cast
-y_train_1 = tf.cast(y_train, tf.float32)
-y_val_1 = tf.cast(y_val, tf.float32)
+# y_train_1 = tf.cast(y_train, tf.float32)
+# y_val_1 = tf.cast(y_val, tf.float32)
 
 # Print shapes of dataset splits
 print("X_train shape:", X_train.shape)
@@ -129,7 +129,7 @@ model.compile(
 )
 
 # Train the Model with Early Stopping
-history = model.fit(X_train, y_train_1, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val_1), shuffle=False, callbacks=[checkpoint])
+history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), shuffle=False, callbacks=[checkpoint])
 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")
