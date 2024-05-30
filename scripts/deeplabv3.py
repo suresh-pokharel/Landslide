@@ -10,9 +10,9 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.losses import MeanAbsoluteError, BinaryCrossentropy, CategoricalCrossentropy, SparseCategoricalCrossentropy
 from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler
 from tensorflow.keras.losses import Loss
-from tensorflow.keras.layers import Activation,Conv2D,MaxPooling2D,BatchNormalization,Input,DepthwiseConv2D,add,Dropout,AveragePooling2D,Concatenate, Dense
+from tensorflow.keras.layers import Activation, Conv2D, MaxPooling2D, BatchNormalization, Input, DepthwiseConv2D, add, Dropout, AveragePooling2D, Concatenate, Dense
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Layer,InputSpec
+from tensorflow.keras.layers import Layer, InputSpec
 from tensorflow.python.keras.utils import conv_utils
 import tensorflow.keras.backend as K
 import tensorflow as tf
@@ -28,7 +28,7 @@ import config
 
 # read configurations
 DATASET_FOLDER = config.DATASET_FOLDER
-DATASET_TYPE = config.DATASET_TYPE 		# LANDSLIDE4SENSE or KERELA or ITALY or SKIN_LESION
+DATASET_TYPE = config.DATASET_TYPE 	# LANDSLIDE4SENSE or KERELA or ITALY or SKIN_LESION
 NUM_EPOCHS = config.NUM_EPOCHS
 BATCH_SIZE = config.BATCH_SIZE
 LEARNING_RATE = config.LEARNING_RATE
@@ -40,11 +40,6 @@ print('Dataset: ' + DATASET_TYPE)
 
 # process and get dataset ready
 X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset(DATASET_TYPE, DATASET_FOLDER)
-
-# Expand dimensions for y-train, y_val, y_test to make similar dimension with output of model
-y_train = np.expand_dims(y_train, axis=-1)
-y_val = np.expand_dims(y_val, axis=-1)
-y_test = np.expand_dims(y_test, axis=-1)
 
 # Print shapes of dataset splits
 print("X_train shape:", X_train.shape)
@@ -58,15 +53,10 @@ print("y_test shape:", y_test.shape)
 # Find mean and standard dev from training set
 means, stds = calculate_means_stds(X_train)
 
-# Scale X-train, X_val, X_test with respect to means/stds from X_train
-# X_train = z_score_normalization(X_train, means, stds)
-# X_val = z_score_normalization(X_val, means, stds)
-# X_test = z_score_normalization(X_test, means, stds)
-
 # Normalize
-X_train = normalize(X_train)
-X_val = normalize(X_val)
-X_test = normalize(X_test)
+# X_train = normalize(X_train)
+# X_val = normalize(X_val)
+# X_test = normalize(X_test)
 
 # Scale
 X_train = min_max_scaling(X_train)
@@ -288,12 +278,12 @@ def deeplabv3_plus(input_shape=(X_train.shape[1], X_train.shape[2], X_train.shap
 	
 	x=Conv2D(num_classes,(1,1),padding="same")(x)
 	x=BilinearUpsampling((4,4))(x)
-	model=Model(img_input,x)
+	model=Model(img_input,x,name="DeepLabV3")
 	return model
 
 # Define Model
 model=deeplabv3_plus(num_classes=1)
-#model.name="DeepLabV3PLUS"
+
 print(model.summary())
 
 # Define call backs

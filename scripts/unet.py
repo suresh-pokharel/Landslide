@@ -37,15 +37,6 @@ print('Dataset: ' + DATASET_TYPE)
 # process and get dataset ready
 X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset(DATASET_TYPE, DATASET_FOLDER)
 
-# Expand dimensions for y-train, y_val, y_test to make similar dimension with output of model
-y_train = np.expand_dims(y_train, axis=-1)
-y_val = np.expand_dims(y_val, axis=-1)
-y_test = np.expand_dims(y_test, axis=-1)
-
-# Type Cast
-y_train = y_train.astype(np.float32)
-y_val = y_val.astype(np.float32)
-y_test = y_test.astype(np.float32)
 
 # Type cast
 # y_train_1 = tf.cast(y_train, tf.float32)
@@ -67,20 +58,22 @@ means, stds = calculate_means_stds(X_train)
 #means = np.array([-0.4914, -0.3074, -0.1277, -0.0625, 0.0439, 0.0803, 0.0644, 0.0802, 0.3000, 0.4082, 0.0823, 0.0516, 0.3338, 0.7819])
 #stds = np.array([0.9325, 0.8775, 0.8860, 0.8869, 0.8857, 0.8418, 0.8354, 0.8491, 0.9061, 1.6072, 0.8848, 0.9232, 0.9018, 1.2913])
 
-# Scale X-train, X_val, X_test with respect to means/stds from X_train
-# X_train = z_score_normalization(X_train, means, stds)
-# X_val = z_score_normalization(X_val, means, stds)
-# X_test = z_score_normalization(X_test, means, stds)
+
 
 # Normalize
 X_train = normalize(X_train)
 X_val = normalize(X_val)
 X_test = normalize(X_test)
 
+# Scale X-train, X_val, X_test with respect to means/stds from X_train
+X_train = z_score_normalization(X_train, means, stds)
+X_val = z_score_normalization(X_val, means, stds)
+X_test = z_score_normalization(X_test, means, stds)
+
 # Scale
-X_train = min_max_scaling(X_train)
-X_val = min_max_scaling(X_val)
-X_test = min_max_scaling(X_test)
+# X_train = min_max_scaling(X_train)
+# X_val = min_max_scaling(X_val)
+# X_test = min_max_scaling(X_test)
 
 # define model
 model = models.unet_2d((X_train.shape[1], X_train.shape[2], X_train.shape[3]), [64, 128, 256, 512, 1024], n_labels=1,
@@ -97,7 +90,7 @@ filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
 es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
 
 #checkpoint
-checkpoint = ModelCheckpoint(filepath, monitor='val_dice_score', verbose=1, save_best_only=True, mode='max')
+checkpoint = ModelCheckpoint(filepath, monitor='val_f1_score_custom', verbose=1, save_best_only=True, mode='max')
 
 # lr_scheduler
 lr_shceduler = LearningRateScheduler(lambda _, lr: lr * np.exp(-0.1), verbose=1)
@@ -118,13 +111,14 @@ loss_A = loss_1 + loss_2
 # Compile the model
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-    loss = loss_1,
+    loss = BinaryCrossentropy(),
     metrics=['accuracy',
          sm.metrics.Recall(),
          sm.metrics.Precision(),
          sm.metrics.FScore(),
          sm.metrics.IOUScore(),
-         sm.metrics.DICEScore()
+         sm.metrics.DICEScore(),
+         f1_score_custom
         ]
 )
 

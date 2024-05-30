@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --partition=mrigpu
-#SBATCH --job-name=run_unet
+#SBATCH --job-name=ls
 #SBATCH --nodes=1
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks-per-node=1

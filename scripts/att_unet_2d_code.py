@@ -56,15 +56,10 @@ print("y_test shape:", y_test.shape)
 # Find mean and standard dev from training set
 means, stds = calculate_means_stds(X_train)
 
-# Scale X-train, X_val, X_test with respect to means/stds from X_train
-# X_train = z_score_normalization(X_train, means, stds)
-# X_val = z_score_normalization(X_val, means, stds)
-# X_test = z_score_normalization(X_test, means, stds)
-
 # Normalize
-X_train = normalize(X_train)
-X_val = normalize(X_val)
-X_test = normalize(X_test)
+# X_train = normalize(X_train)
+# X_val = normalize(X_val)
+# X_test = normalize(X_test)
 
 # Scale
 X_train = min_max_scaling(X_train)
@@ -75,13 +70,13 @@ X_test = min_max_scaling(X_test)
 model = models.att_unet_2d((X_train.shape[-3], X_train.shape[-2], X_train.shape[-1]), [64, 128, 256, 512, 1024], n_labels=1, stack_num_down=2, stack_num_up=2, activation='ReLU', atten_activation='ReLU', attention='add', output_activation='Sigmoid', batch_norm=True, pool='max', unpool='nearest', name='attunet')
 
 # Define call backs
-# best model path
+# Best model path
 filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
 
-#early stopping
+# Early stopping
 es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
 
-#checkpoint
+# Checkpoint
 checkpoint = ModelCheckpoint(filepath, monitor='val_dice_score', verbose=1, save_best_only=True, mode='max')
 
 # lr_scheduler

@@ -36,14 +36,8 @@ full_path = create_output_folder()
 print("Output Path: " + full_path)
 print('Dataset: ' + DATASET_TYPE)
 
-# process and get dataset ready
+# Process and get dataset ready
 X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset(DATASET_TYPE, DATASET_FOLDER)
-
-
-# Expand dimensions for y-train, y_val, y_test to make similar dimension with output of model
-y_train = np.expand_dims(y_train, axis=-1)
-y_val = np.expand_dims(y_val, axis=-1)
-y_test = np.expand_dims(y_test, axis=-1)
 
 # Type Cast
 y_train = y_train.astype(np.float32)

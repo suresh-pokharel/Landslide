@@ -40,13 +40,6 @@ print('Dataset: ' + DATASET_TYPE)
 # process and get dataset ready
 X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset(DATASET_TYPE, DATASET_FOLDER)
 
-
-# Expand dimensions for y-train, y_val, y_test to make similar dimension with output of model
-y_train = np.expand_dims(y_train, axis=-1)
-y_val = np.expand_dims(y_val, axis=-1)
-y_test = np.expand_dims(y_test, axis=-1)
-
-
 # Print shapes of dataset splits
 print("X_train shape:", X_train.shape)
 print("y_train shape:", y_train.shape)
@@ -60,19 +53,20 @@ print("y_test shape:", y_test.shape)
 means, stds = calculate_means_stds(X_train)
 
 # Scale X-train, X_val, X_test with respect to means/stds from X_train
-# X_train = z_score_normalization(X_train, means, stds)
-# X_val = z_score_normalization(X_val, means, stds)
-# X_test = z_score_normalization(X_test, means, stds)
+X_train = z_score_normalization(X_train, means, stds)
+X_val = z_score_normalization(X_val, means, stds)
+X_test = z_score_normalization(X_test, means, stds)
 
 # Normalize
-X_train = normalize(X_train)
-X_val = normalize(X_val)
-X_test = normalize(X_test)
+#X_train = normalize(X_train)
+#X_val = normalize(X_val)
+#X_test = normalize(X_test)
 
 # Scale
-X_train = min_max_scaling(X_train)
-X_val = min_max_scaling(X_val)
-X_test = min_max_scaling(X_test)
+#X_train = min_max_scaling(X_train)
+#X_val = min_max_scaling(X_val)
+#X_test = min_max_scaling(X_test)
+
 # MODEL
 from keras_unet_collection.layer_utils import *
 from keras_unet_collection.transformer_layers import patch_extract, patch_embedding, SwinTransformerBlock, patch_merging, patch_expanding
@@ -320,7 +314,7 @@ filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
 es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
 
 #checkpoint
-checkpoint = ModelCheckpoint(filepath, monitor='val_dice_score', verbose=1, save_best_only=True, mode='max')
+checkpoint = ModelCheckpoint(filepath, monitor='val_f1_score', verbose=1, save_best_only=True, mode='max')
 
 # lr_scheduler
 lr_shceduler = LearningRateScheduler(lambda _, lr: lr * np.exp(-0.1), verbose=1)

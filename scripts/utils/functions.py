@@ -28,7 +28,12 @@ def create_output_folder():
     return full_path
 
 def load_h5_data(paths):
+    from natsort import natsorted
+    
     paths = glob.glob(paths)
+    paths = natsorted(paths)
+    print(paths[100])
+    
     features = []
     for path in paths:
         # Open the HDF5 file in read mode
@@ -105,6 +110,17 @@ def prepare_dataset(DATASET_TYPE, DATASET_FOLDER):
         print("No dataset found!")
         return 0
     
+    # preprocess
+    # Expand dimensions for y-train, y_val, y_test to make similar dimension with output of model
+    y_train = np.expand_dims(y_train, axis=-1)
+    y_val = np.expand_dims(y_val, axis=-1)
+    y_test = np.expand_dims(y_test, axis=-1)
+
+    # Type Cast
+    y_train = y_train.astype(np.float32)
+    y_val = y_val.astype(np.float32)
+    y_test = y_test.astype(np.float32)
+
     # return
     return X_train, X_val, X_test, y_train, y_val, y_test
 
