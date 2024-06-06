@@ -314,7 +314,7 @@ filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
 es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
 
 #checkpoint
-checkpoint = ModelCheckpoint(filepath, monitor='val_f1_score', verbose=1, save_best_only=True, mode='max')
+checkpoint = ModelCheckpoint(filepath, monitor='val_f1-score', verbose=1, save_best_only=True, mode='max')
 
 # lr_scheduler
 lr_shceduler = LearningRateScheduler(lambda _, lr: lr * np.exp(-0.1), verbose=1)
@@ -330,7 +330,7 @@ loss_7 = IoULoss
 loss_8 = k_lovasz_hinge(per_image=True)
 
 # Combined loss functions
-loss_A = loss_1 + loss_2
+loss_A = loss_4
 
 # Compile the model
 model.compile(
@@ -350,8 +350,23 @@ history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, 
 
 
 # Save model
-model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")
+# model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")
 np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_history.npy", history.history)
+
+# open saved best model
+
+# Define the custom objects dictionary
+custom_objects = {
+    'patch_extract': patch_extract,
+    'patch_embedding': patch_embedding,
+    'SwinTransformerBlock': SwinTransformerBlock,
+    'patch_merging': patch_merging,
+    'patch_expanding': patch_expanding
+}
+
+import keras
+with keras.utils.custom_object_scope(custom_objects):
+    model = tf.keras.models.load_model(full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras", compile=False)
 
 # Convert to appropriate type and check shapes
 y_test = y_test.astype(np.int8)

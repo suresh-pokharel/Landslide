@@ -58,19 +58,20 @@ print("y_test shape:", y_test.shape)
 means, stds = calculate_means_stds(X_train)
 
 # Scale X-train, X_val, X_test with respect to means/stds from X_train
-# X_train = z_score_normalization(X_train, means, stds)
-# X_val = z_score_normalization(X_val, means, stds)
-# X_test = z_score_normalization(X_test, means, stds)
+X_train = z_score_normalization(X_train, means, stds)
+X_val = z_score_normalization(X_val, means, stds)
+X_test = z_score_normalization(X_test, means, stds)
 
 # Normalize
-X_train = normalize(X_train)
-X_val = normalize(X_val)
-X_test = normalize(X_test)
+#X_train = normalize(X_train)
+#X_val = normalize(X_val)
+#X_test = normalize(X_test)
 
 # Scale
-X_train = min_max_scaling(X_train)
-X_val = min_max_scaling(X_val)
-X_test = min_max_scaling(X_test)
+#X_train = min_max_scaling(X_train)
+#X_val = min_max_scaling(X_val)
+#X_test = min_max_scaling(X_test)
+
 
 model = models.transunet_2d((X_train.shape[1], X_train.shape[2], X_train.shape[3]), filter_num=[64, 128, 256, 512], n_labels=1, stack_num_down=2, stack_num_up=2,
                                 embed_dim=768, num_mlp=3072, num_heads=12, num_transformer=12,

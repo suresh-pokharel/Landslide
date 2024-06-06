@@ -12,6 +12,8 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.losses import BinaryCrossentropy
 import datetime, os, sys, glob, h5py, math
 
+from natsort import natsorted
+
 
 def create_output_folder():
     # Get the current time in seconds
@@ -28,13 +30,12 @@ def create_output_folder():
     return full_path
 
 def load_h5_data(paths):
-    from natsort import natsorted
-    
     paths = glob.glob(paths)
     paths = natsorted(paths)
     print(paths[100])
     
     features = []
+    
     for path in paths:
         # Open the HDF5 file in read mode
         with h5py.File(path, 'r') as file:

@@ -51,8 +51,6 @@ print("X_test shape:", X_test.shape)
 print("y_test shape:", y_test.shape)
 
 # Scale the images
-# Find mean and standard dev from training set 
-means, stds = calculate_means_stds(X_train)
 
 # From LandSlide4Sense
 #means = np.array([-0.4914, -0.3074, -0.1277, -0.0625, 0.0439, 0.0803, 0.0644, 0.0802, 0.3000, 0.4082, 0.0823, 0.0516, 0.3338, 0.7819])
@@ -61,9 +59,13 @@ means, stds = calculate_means_stds(X_train)
 
 
 # Normalize
-X_train = normalize(X_train)
-X_val = normalize(X_val)
-X_test = normalize(X_test)
+#X_train = normalize(X_train)
+#X_val = normalize(X_val)
+#X_test = normalize(X_test)
+
+
+# Find mean and standard dev from training set 
+means, stds = calculate_means_stds(X_train)
 
 # Scale X-train, X_val, X_test with respect to means/stds from X_train
 X_train = z_score_normalization(X_train, means, stds)
@@ -90,7 +92,7 @@ filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
 es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
 
 #checkpoint
-checkpoint = ModelCheckpoint(filepath, monitor='val_f1_score_custom', verbose=1, save_best_only=True, mode='max')
+checkpoint = ModelCheckpoint(filepath, monitor='val_f1-score', verbose=1, save_best_only=True, mode='max')
 
 # lr_scheduler
 lr_shceduler = LearningRateScheduler(lambda _, lr: lr * np.exp(-0.1), verbose=1)
@@ -111,14 +113,13 @@ loss_A = loss_1 + loss_2
 # Compile the model
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-    loss = BinaryCrossentropy(),
+    loss = loss_4,
     metrics=['accuracy',
          sm.metrics.Recall(),
          sm.metrics.Precision(),
          sm.metrics.FScore(),
          sm.metrics.IOUScore(),
-         sm.metrics.DICEScore(),
-         f1_score_custom
+         sm.metrics.DICEScore()
         ]
 )
 
