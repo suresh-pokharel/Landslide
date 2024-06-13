@@ -330,7 +330,11 @@ loss_7 = IoULoss
 loss_8 = k_lovasz_hinge(per_image=True)
 
 # Combined loss functions
-loss_A = loss_4
+loss_function = loss_1
+
+# print loss function
+print("loss_function")
+print(loss_function)
 
 # Compile the model
 model.compile(
@@ -354,7 +358,6 @@ history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, 
 np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_history.npy", history.history)
 
 # open saved best model
-
 # Define the custom objects dictionary
 custom_objects = {
     'patch_extract': patch_extract,
@@ -368,11 +371,15 @@ import keras
 with keras.utils.custom_object_scope(custom_objects):
     model = tf.keras.models.load_model(full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras", compile=False)
 
+
+# save the plot
+save_training_history_plot(history, checkpoint, full_path+"/"+model.name+"_"+DATASET_TYPE+".png")
+
 # Convert to appropriate type and check shapes
 y_test = y_test.astype(np.int8)
-predictions_test = (model.predict(X_test, batch_size=64) > 0.5).astype(np.int8)
+predictions_test = (model.predict(X_test, batch_size = BATCH_SIZE) > 0.5).astype(np.int8)
 y_val = y_val.astype(np.int8)
-predictions_val = (model.predict(X_val, batch_size=64) > 0.5).astype(np.int8)
+predictions_val = (model.predict(X_val, batch_size = BATCH_SIZE) > 0.5).astype(np.int8)
 
 # Flatten the arrays
 y_test_flat = y_test.reshape(-1)

@@ -13,6 +13,7 @@ from tensorflow.keras.losses import BinaryCrossentropy
 import datetime, os, sys, glob, h5py, math
 
 from natsort import natsorted
+import matplotlib.pyplot as plt
 
 
 def create_output_folder():
@@ -32,7 +33,6 @@ def create_output_folder():
 def load_h5_data(paths):
     paths = glob.glob(paths)
     paths = natsorted(paths)
-    print(paths[100])
     
     features = []
     
@@ -205,4 +205,51 @@ def f1_score_custom(y_true, y_pred):
     # Calculate F1 score
     f1_score = 2 * (precision * recall) / (precision + recall + K.epsilon())
     return f1_score
+    
+
+
+def save_training_history_plot(history, checkpoint, filepath):
+    # Retrieve metrics and losses
+    loss = history.history['loss']
+    val_loss = history.history['val_loss']
+    
+    f1_score = history.history['f1-score']
+    val_f1_score = history.history['val_f1-score']
+    iou_score = history.history['iou_score']
+    val_iou_score = history.history['val_iou_score']
+
+    epochs = range(1, len(loss) + 1)
+
+    # Plot metrics
+    plt.figure(figsize=(12, 8))
+
+    plt.subplot(2, 1, 1)
+    plt.plot(epochs, loss, 'b', label='Training loss')
+    plt.plot(epochs, val_loss, 'r', label='Validation loss')
+    plt.title('Training and Validation Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+
+    plt.subplot(2, 1, 2)
+    plt.plot(epochs, f1_score, 'k', label='Training F1-score')
+    plt.plot(epochs, val_f1_score, 'orange', label='Validation F1-score')
+    plt.plot(epochs, iou_score, 'purple', label='Training IOU-score')
+    plt.plot(epochs, val_iou_score, 'brown', label='Validation IOU-score')
+    plt.title('Training and Validation Metrics')
+    plt.xlabel('Epochs')
+    plt.ylabel('Metrics')
+    plt.legend()
+
+    # Mark best validation F1-score epoch
+    best_epoch = np.argmax(history.history['val_f1-score']) + 1
+    best_val_f1_score = round(max(history.history['val_f1-score']), 4)
+    plt.axvline(x=best_epoch, linestyle='--', color='g', label=f'Best F1-score (Epoch {best_epoch}, {best_val_f1_score})')
+    plt.scatter(best_epoch, best_val_f1_score, color='g', s=100)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(filepath)
+    plt.close()
+
     
