@@ -41,14 +41,6 @@ print('Dataset: ' + DATASET_TYPE)
 # process and get dataset ready
 X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset(DATASET_TYPE, DATASET_FOLDER)
 
-# Print shapes of dataset splits
-print("X_train shape:", X_train.shape)
-print("y_train shape:", y_train.shape)
-print("X_val shape:", X_val.shape)
-print("y_val shape:", y_val.shape)
-print("X_test shape:", X_test.shape)
-print("y_test shape:", y_test.shape)
-
 # Scale the images
 # Find mean and standard dev from training set
 means, stds = calculate_means_stds(X_train)
@@ -309,13 +301,17 @@ loss_6 = TverskyLoss
 loss_7 = IoULoss
 loss_8 = k_lovasz_hinge(per_image=True)
 
-# Combined loss functions
-loss_A = loss_1 + loss_2
+# Combine or define loss functions
+loss_function = loss_1
+
+# print loss function
+print("loss_function")
+print(loss_function)
 
 # Compile the model
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-    loss = loss_1,
+    loss = loss_function,
     metrics=['accuracy',
          sm.metrics.Recall(),
          sm.metrics.Precision(),

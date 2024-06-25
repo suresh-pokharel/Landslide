@@ -121,6 +121,14 @@ def prepare_dataset(DATASET_TYPE, DATASET_FOLDER):
     y_train = y_train.astype(np.float32)
     y_val = y_val.astype(np.float32)
     y_test = y_test.astype(np.float32)
+    
+    # Print shapes of dataset splits
+    print("X_train shape:", X_train.shape)
+    print("y_train shape:", y_train.shape)
+    print("X_val shape:", X_val.shape)
+    print("y_val shape:", y_val.shape)
+    print("X_test shape:", X_test.shape)
+    print("y_test shape:", y_test.shape)
 
     # return
     return X_train, X_val, X_test, y_train, y_val, y_test
@@ -210,13 +218,13 @@ def f1_score_custom(y_true, y_pred):
 
 def save_training_history_plot(history, checkpoint, filepath):
     # Retrieve metrics and losses
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
+    loss = history['loss']
+    val_loss = history['val_loss']
     
-    f1_score = history.history['f1-score']
-    val_f1_score = history.history['val_f1-score']
-    iou_score = history.history['iou_score']
-    val_iou_score = history.history['val_iou_score']
+    f1_score = history['f1-score']
+    val_f1_score = history['val_f1-score']
+    iou_score = history['iou_score']
+    val_iou_score = history['val_iou_score']
 
     epochs = range(1, len(loss) + 1)
 
@@ -242,8 +250,8 @@ def save_training_history_plot(history, checkpoint, filepath):
     plt.legend()
 
     # Mark best validation F1-score epoch
-    best_epoch = np.argmax(history.history['val_f1-score']) + 1
-    best_val_f1_score = round(max(history.history['val_f1-score']), 4)
+    best_epoch = np.argmax(history['val_f1-score']) + 1
+    best_val_f1_score = round(max(history['val_f1-score']), 4)
     plt.axvline(x=best_epoch, linestyle='--', color='g', label=f'Best F1-score (Epoch {best_epoch}, {best_val_f1_score})')
     plt.scatter(best_epoch, best_val_f1_score, color='g', s=100)
     plt.legend()

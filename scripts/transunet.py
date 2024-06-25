@@ -44,15 +44,6 @@ y_train = y_train.astype(np.float32)
 y_val = y_val.astype(np.float32)
 y_test = y_test.astype(np.float32)
 
-# Print shapes of dataset splits
-print("X_train shape:", X_train.shape)
-print("y_train shape:", y_train.shape)
-print("X_val shape:", X_val.shape)
-print("y_val shape:", y_val.shape)
-print("X_test shape:", X_test.shape)
-print("y_test shape:", y_test.shape)
-
-
 # Scale the images
 # Find mean and standard dev from training set
 means, stds = calculate_means_stds(X_train)
@@ -101,13 +92,17 @@ loss_6 = TverskyLoss
 loss_7 = IoULoss
 loss_8 = k_lovasz_hinge(per_image=True)
 
-# Combined loss functions
-loss_A = loss_1 + loss_2
+# Combine or define loss functions
+loss_function = loss_1
+
+# print loss function
+print("loss_function")
+print(loss_function)
 
 # Compile the model
 model.compile(
     optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-    loss = loss_1,
+    loss = loss_function,
     metrics=['accuracy',
          sm.metrics.Recall(),
          sm.metrics.Precision(),
@@ -123,6 +118,10 @@ history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, 
 # Save model
 model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")
 np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_history.npy", history.history)
+
+# save the plot
+save_training_history_plot(history.history, checkpoint, full_path+"/"+model.name+"_"+DATASET_TYPE+".png")
+
 
 # Convert to appropriate type and check shapes
 y_test = y_test.astype(np.int8)

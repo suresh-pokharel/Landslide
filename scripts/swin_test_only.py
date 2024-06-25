@@ -40,26 +40,32 @@ print('Dataset: ' + DATASET_TYPE)
 # process and get dataset ready
 X_train, X_val, X_test, y_train, y_val, y_test = prepare_dataset(DATASET_TYPE, DATASET_FOLDER)
 
-
+# Print shapes of dataset splits
+print("X_train shape:", X_train.shape)
+print("y_train shape:", y_train.shape)
+print("X_val shape:", X_val.shape)
+print("y_val shape:", y_val.shape)
+print("X_test shape:", X_test.shape)
+print("y_test shape:", y_test.shape)
 
 # Scale the images
 # Find mean and standard dev from training set
 means, stds = calculate_means_stds(X_train)
 
 # Scale X-train, X_val, X_test with respect to means/stds from X_train
-#X_train = z_score_normalization(X_train, means, stds)
-#X_val = z_score_normalization(X_val, means, stds)
-#X_test = z_score_normalization(X_test, means, stds)
+X_train = z_score_normalization(X_train, means, stds)
+X_val = z_score_normalization(X_val, means, stds)
+X_test = z_score_normalization(X_test, means, stds)
 
 # Normalize
-X_train = normalize(X_train)
-X_val = normalize(X_val)
-X_test = normalize(X_test)
+#X_train = normalize(X_train)
+#X_val = normalize(X_val)
+#X_test = normalize(X_test)
 
 # Scale
-X_train = min_max_scaling(X_train)
-X_val = min_max_scaling(X_val)
-X_test = min_max_scaling(X_test)
+#X_train = min_max_scaling(X_train)
+#X_val = min_max_scaling(X_val)
+#X_test = min_max_scaling(X_test)
 
 # MODEL
 from keras_unet_collection.layer_utils import *
@@ -300,58 +306,10 @@ def swin_unet_2d(input_size, filter_num_begin, n_labels, depth, stack_num_down, 
 
 model = swin_unet_2d((X_train.shape[1], X_train.shape[2], X_train.shape[3]), filter_num_begin=64, n_labels=1, depth=4, stack_num_down=2, stack_num_up=2, patch_size=(2, 2), num_heads=[4, 8, 8, 8], window_size=[4, 2, 2, 2], num_mlp=512, output_activation='Sigmoid', shift_window=True, name='swin_unet')
 
-# Define call backs
-# best model path
-filepath = (full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras")
-
-#early stopping
-es = EarlyStopping(monitor='val_dice_score', patience=9, restore_best_weights=True, mode='max')
-
-#checkpoint
-checkpoint = ModelCheckpoint(filepath, monitor='val_f1-score', verbose=1, save_best_only=True, mode='max')
-
-# lr_scheduler
-lr_shceduler = LearningRateScheduler(scheduler, verbose=1)
-    
-# Define combined loss
-loss_1 = sm.losses.DiceLoss()
-loss_2 = sm.losses.JaccardLoss()
-loss_3 = sm.losses.BinaryFocalLoss()
-loss_4 = sm.losses.BinaryCELoss()
-loss_5 = GeneralizedDiceLoss()
-loss_6 = TverskyLoss
-loss_7 = IoULoss
-loss_8 = k_lovasz_hinge(per_image=True)
-
-# Combine or define loss functions
-loss_function = loss_1
-
-# print loss function
-print("loss_function")
-print(loss_function)
-
-# Compile the model
-model.compile(
-    optimizer=tf.keras.optimizers.Adam(learning_rate=config.LEARNING_RATE),
-    loss = loss_function,
-    metrics=['accuracy',
-         sm.metrics.Recall(),
-         sm.metrics.Precision(),
-         sm.metrics.FScore(),
-         sm.metrics.IOUScore(),
-         sm.metrics.DICEScore()
-        ]
-)
-
-# Train the Model with Early Stopping
-history = model.fit(X_train, y_train, epochs=NUM_EPOCHS, batch_size=BATCH_SIZE, validation_data=(X_val, y_val), shuffle=False, callbacks=[checkpoint, lr_shceduler])
-
-
-# Save model
-# model.save(f"{full_path}/{DATASET_TYPE}_{model.name}.keras")
-np.save(f"{full_path}/{DATASET_TYPE}_{model.name}_history.npy", history.history)
 
 # open saved best model
+saved_path = "/home/sureshp/Landslide/outputs/folder_1718148887/"
+
 # Define the custom objects dictionary
 custom_objects = {
     'patch_extract': patch_extract,
@@ -363,11 +321,17 @@ custom_objects = {
 
 import keras
 with keras.utils.custom_object_scope(custom_objects):
-    model = tf.keras.models.load_model(full_path+"/"+model.name+"_"+DATASET_TYPE+"_best-model.keras", compile=False)
+    model = tf.keras.models.load_model(saved_path + "swin_unet_model_LANDSLIDE4SENSE_best-model.keras", compile=False)
 
+
+#checkpoint
+checkpoint = ModelCheckpoint(saved_path + "swin_unet_model_LANDSLIDE4SENSE_best-model.keras", monitor='val_f1-score', verbose=1, save_best_only=True, mode='max')
+
+# open history
+history = np.load(saved_path + "LANDSLIDE4SENSE_swin_unet_model_history.npy", allow_pickle=True).item()
 
 # save the plot
-save_training_history_plot(history.history, checkpoint, full_path+"/"+model.name+"_"+DATASET_TYPE+".png")
+save_training_history_plot(history, checkpoint, saved_path + "swin_unet_model_LANDSLIDE4SENSE.png")
 
 # Convert to appropriate type and check shapes
 y_test = y_test.astype(np.int8)
